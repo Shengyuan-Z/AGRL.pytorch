@@ -369,7 +369,7 @@ class VisionTransformer(nn.Module):
         if self.training:
             return cls, features
         else:
-            return cls
+            return features
 
     def load_from(self, weights):
         with torch.no_grad():
