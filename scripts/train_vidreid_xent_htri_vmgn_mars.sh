@@ -19,7 +19,7 @@ python train_vidreid_xent_htri.py -d mars \
                                   --use-pose \
                                   --learn-graph \
                                   --flip-aug \
-                                  --gpu-devices 0 \
+                                  --gpu-devices 1 \
                                   --eval-step 5 \
                                   --print-last \
                                   --dist-metric cosine \

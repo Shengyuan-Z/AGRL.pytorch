@@ -28,7 +28,17 @@ from torchreid.utils.model_complexity import compute_model_complexity
 from torchreid.samplers import *
 from torchreid.optimizers import init_optim
 
+# vivit
+from models.vivit import VisionTransformer, CONFIGS
+
 parser = argparse.ArgumentParser(description='Train video model with cross entropy loss')
+# ViT Backbone
+parser.add_argument("--model_type", choices=["ViT-B_16", "ViT-B_32", "ViT-L_16",
+                                                "ViT-L_32", "ViT-H_14", "R50-ViT-B_16"],
+                    default="ViT-B_16",
+                    help="Which variant to use.")
+parser.add_argument("--pretrained_dir", type=str, default="vit_checkpoint/ViT-B_16.npz",
+                    help="Where to search for pretrained ViT models.")
 # Datasets
 parser.add_argument('--root', type=str, default='data',
                     help="root path to data directory")
@@ -154,8 +164,51 @@ parser.add_argument('--seed', type=int, default=0xff,
                     help="manual seed")
 parser.add_argument('--save-dir', type=str, default='log')
 
+
+line = "-d mars \
+        -a vmgn \
+        --seq-len 8 \
+        --train-batch 48 \
+        --test-batch 48 \
+        --num-instances 4 \
+        --train-sample restricted \
+        --train-sampler RandomIdentitySamplerV1 \
+        --test-sample evenly \
+        --optim adam \
+        --soft-margin \
+        --lr 1e-4 \
+        --max-epoch 700 \
+        --stepsize 50 100 150 \
+        --flip-aug \
+        --gpu-devices 1,2,3 \
+        --eval-step 5 \
+        --print-last \
+        --dist-metric cosine \
+        --save-dir log/video/vivit \
+        --use-pose \
+        --num-split 4 \
+        --pyramid-part \
+        --num-gb 2 \
+        --learn-graph \
+        --consistent-loss \
+        --workers 12 \
+        --height 224 \
+        --width 224"
+
+'''
+        --num-split 4 \
+        --pyramid-part \
+        --num-gb 2 \
+        
+        --learn-graph \
+        --consistent-loss \
+'''
+
+args = parser.parse_args(line.split())
+
+
 # global variables
-args = parser.parse_args()
+# args = parser.parse_args()
 best_rank1 = -np.inf
 best_mAP = 0
 
@@ -246,13 +299,24 @@ def main():
         pin_memory=pin_memory, drop_last=False,
     )
 
+
+    
     print("Initializing model: {}".format(args.arch))
+
+    # Prepare model
+    config = CONFIGS[args.model_type]
+
+    img_size=[args.height, args.width]
+    model = VisionTransformer(config, img_size, seq_len=8, zero_head=True, num_classes=dataset.num_train_pids)
+    model.load_from(np.load(args.pretrained_dir))
+
+    '''
     model = models.init_model(name=args.arch, num_classes=dataset.num_train_pids, loss={'xent', 'htri'},
                               last_stride=args.last_stride, num_parts=args.num_parts, num_scale=args.num_scale,
                               num_split=args.num_split, pyramid_part=args.pyramid_part, num_gb=args.num_gb,
                               use_pose=args.use_pose, learn_graph=args.learn_graph, consistent_loss=args.consistent_loss,
                               bnneck=args.bnneck, save_dir=args.save_dir)
-
+    '''
     input_size = sum(calc_splits(args.num_split)) if args.pyramid_part else args.num_split
     input_size *= args.num_scale * args.seq_len
     num_params, flops = compute_model_complexity(model,
@@ -275,7 +339,7 @@ def main():
     if args.warmup:
         scheduler = lr_scheduler.WarmupMultiStepLR(optimizer, milestones=args.stepsize, gamma=args.gamma,
                                                    warmup_iters=10, warmup_factor=0.01)
-
+    
     if args.load_weights and check_isfile(args.load_weights):
         # load pretrained weights but ignore layers that don't match in size
         checkpoint = torch.load(args.load_weights)
