@@ -174,10 +174,11 @@ line = "-d mars \
         --train-sample restricted \
         --train-sampler RandomIdentitySamplerV1 \
         --test-sample evenly \
-        --optim adam \
+        --optim adamw \
+        --weight-decay 0.03\
         --soft-margin \
-        --lr 1e-4 \
-        --max-epoch 700 \
+        --lr 3e-4 \
+        --max-epoch 200 \
         --stepsize 50 100 150 \
         --flip-aug \
         --gpu-devices 1,2,3 \
@@ -194,6 +195,7 @@ line = "-d mars \
         --workers 12 \
         --height 224 \
         --width 224"
+        # --resume /home/mygit/AGRL.pytorch/log/video/vivit/checkpoint_ep140.pth.tar"
 
 '''
         --num-split 4 \

@@ -19,6 +19,8 @@ def init_optim(optim, params, lr, weight_decay):
         return AdaBound(params, lr=lr, final_lr=100 * lr, weight_decay=weight_decay)
     elif optim == 'radam':
         return RAdam(params, lr=lr, weight_decay=weight_decay)
+    elif optim =="adamw":
+        return torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay)
     else:
         raise KeyError("Unsupported optimizer: {}".format(optim))
 
