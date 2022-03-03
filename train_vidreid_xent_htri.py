@@ -177,7 +177,7 @@ line = "-d mars \
         --optim adamw \
         --weight-decay 0.03\
         --soft-margin \
-        --lr 3e-4 \
+        --lr 4e-4 \
         --max-epoch 200 \
         --stepsize 50 100 150 \
         --flip-aug \
@@ -193,8 +193,8 @@ line = "-d mars \
         --learn-graph \
         --consistent-loss \
         --workers 12 \
-        --height 224 \
-        --width 224"
+        --height 256 \
+        --width 128"
         # --resume /home/mygit/AGRL.pytorch/log/video/vivit/checkpoint_ep140.pth.tar"
 
 '''
@@ -225,6 +225,9 @@ def main():
     use_gpu = torch.cuda.is_available()
     if args.use_cpu:
         use_gpu = False
+
+    ## mod
+    args.save_dir = f"{args.save_dir}_{args.optim}_lr{args.lr}_decay{args.weight_decay}"
 
     if not args.evaluate:
         sys.stdout = Logger(osp.join(args.save_dir, 'log_train{}.txt'.format(time.strftime('-%Y-%m-%d-%H-%M-%S'))))

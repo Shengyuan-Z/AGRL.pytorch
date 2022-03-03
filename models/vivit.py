@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 
 from torch.nn import CrossEntropyLoss, Dropout, Softmax, Linear, Conv2d, Conv3d, LayerNorm
@@ -42,15 +43,33 @@ def np2th(weights, conv=False):
         weights = weights.transpose([3, 2, 0, 1])
     return torch.from_numpy(weights)
 
+def resize_pos_embed(posemb, new_shape, hight, width):
+    # Rescale the grid of position embeddings when loading from state_dict. Adapted from
+    # https://github.com/google-research/vision_transformer/blob/00883dd691c63a6830751563748663526e811cee/vit_jax/checkpoint.py#L224
+    
 
-def np2th_vivit(weights, conv=False, times = 0, dim = 0):
+    gs_old = int(math.sqrt(posemb.shape[2]))
+    print('Resized position embedding from size:{} to size: {} with height:{} width: {}'.format(posemb.shape, new_shape, hight, width))
+    posemb = posemb.reshape(posemb.shape[1], gs_old, gs_old, -1).permute(0,-1,-3,-2)
+    posemb = F.interpolate(posemb, size=(hight, width), mode='bilinear')
+    posemb = posemb.permute(0, -2, -1 , -3).reshape(1,posemb.shape[0], hight * width, -1)
+    # posemb = posemb.reshape(1, hight * width, -1)
+    return posemb
+
+def np2th_vivit(weights, conv=False, times=0, dim=0, resize=False, new_shape=None, height=None, width=None):
     """Possibly convert HWIO to OIHW and add copied dimension"""
     tmp = weights if isinstance(weights, torch.Tensor) else torch.from_numpy(weights)
     if conv:
         tmp = tmp.permute([3, 2, 0, 1])
     if times:
         tmp = torch.stack([tmp for _ in range(times)], dim=dim)
+    if resize: #only for position_embeddings
+        # scale = tuple((torch.tensor(new_shape, dtype=float)/torch.tensor(tmp.shape, dtype=float)).tolist())
+        # tmp = F.interpolate(tmp, size=scale, mode='bilinear')
+        tmp = resize_pos_embed(tmp,new_shape,height,width)
     return tmp
+
+
 
 def weights_init_kaiming(m):
     classname = m.__class__.__name__
@@ -358,6 +377,8 @@ class VisionTransformer(nn.Module):
         self.bottleneck.bias.requires_grad_(False)
         self.head = Linear(config.hidden_size, num_classes,bias=False)
         self.t = config.t # t frames per tublet
+        self.img_size = img_size
+        self.config = config
 
     def forward(self, x, labels=None): 
         x, attn_weights = self.transformer(x)
@@ -379,7 +400,7 @@ class VisionTransformer(nn.Module):
             #     # nn.init.zeros_(self.head.bias)
             # else:
             #     self.head.weight.copy_(np2th(weights["head/kernel"]).t())
-            #     # self.head.bias.copy_(np2th(weights["head/bias"]).t())
+            #     # self.head.bias.copy_(np2th(weights["head/bias"]).t())c
 
             self.transformer.embeddings.patch_embeddings.weight.copy_\
                 (np2th_vivit(weights["embedding/kernel"], conv=True, times = self.t, dim = 2))
@@ -390,7 +411,10 @@ class VisionTransformer(nn.Module):
 
             posemb = np2th(weights["Transformer/posembed_input/pos_embedding"])
             self.transformer.embeddings.position_embeddings.copy_\
-                (np2th_vivit(posemb,conv=False,times=2,dim=1)[:,:,1:])
+                (np2th_vivit(posemb[:,1:,:],conv=False,times=2,dim=1,\
+                resize=True,new_shape=self.transformer.embeddings.position_embeddings.shape,\
+                height=self.img_size[0]//self.config.patches['size'][0],\
+                width=self.img_size[1]//self.config.patches['size'][1]))
             '''
             posemb_new = self.transformer.embeddings.position_embeddings
             if posemb.size() == posemb_new.size():
