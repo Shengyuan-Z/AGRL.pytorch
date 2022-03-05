@@ -44,7 +44,8 @@ def get_b16_config():
     config.transformer.dropout_rate = 0.1
     config.classifier = 'token'
     config.representation_size = None
-    config.t = 4
+    config.t = 2 # stride in time axis
+    config.stride = ml_collections.ConfigDict({'size': (config.t, 12, 12)})
     return config
 
 

@@ -47,7 +47,6 @@ def resize_pos_embed(posemb, new_shape, hight, width):
     # Rescale the grid of position embeddings when loading from state_dict. Adapted from
     # https://github.com/google-research/vision_transformer/blob/00883dd691c63a6830751563748663526e811cee/vit_jax/checkpoint.py#L224
     
-
     gs_old = int(math.sqrt(posemb.shape[2]))
     print('Resized position embedding from size:{} to size: {} with height:{} width: {}'.format(posemb.shape, new_shape, hight, width))
     posemb = posemb.reshape(posemb.shape[1], gs_old, gs_old, -1).permute(0,-1,-3,-2)
@@ -189,8 +188,10 @@ class Embeddings(nn.Module):
         else:
             # patch_size = _pair(config.patches["size"])
             patch_size = (config.t, config.patches["size"][0],config.patches["size"][1])
-            n_patches_per_frame = (img_size[0] // patch_size[1]) * (img_size[1] // patch_size[2])
-            n_t = seq_len // config.t
+            n_patches_per_frame = ((img_size[0]-config.patches["size"][0]) // config.stride["size"][1] + 1) \
+                * ((img_size[1]-config.patches["size"][1]) // config.stride["size"][2] + 1)
+            n_t = ((seq_len-config.t)//config.stride["size"][0] + 1)
+            # n_patches = n_patches_per_frame*n_t
             self.hybrid = False
 
         if self.hybrid:
@@ -201,7 +202,7 @@ class Embeddings(nn.Module):
         self.patch_embeddings = Conv3d(in_channels=in_channels,
                                        out_channels=config.hidden_size,
                                        kernel_size=patch_size,
-                                       stride=patch_size)
+                                       stride=config.stride["size"])
 
         self.position_embeddings = nn.Parameter(torch.zeros(1, n_t, n_patches_per_frame, config.hidden_size))
         # self.cls_token = nn.Parameter(torch.zeros(1, 1, config.hidden_size))
@@ -379,6 +380,7 @@ class VisionTransformer(nn.Module):
         self.t = config.t # t frames per tublet
         self.img_size = img_size
         self.config = config
+        self.seq_len = seq_len
 
     def forward(self, x, labels=None): 
         x, attn_weights = self.transformer(x)
@@ -411,10 +413,10 @@ class VisionTransformer(nn.Module):
 
             posemb = np2th(weights["Transformer/posembed_input/pos_embedding"])
             self.transformer.embeddings.position_embeddings.copy_\
-                (np2th_vivit(posemb[:,1:,:],conv=False,times=2,dim=1,\
+                (np2th_vivit(posemb[:,1:,:],conv=False,times=self.seq_len//self.config.t,dim=1,\
                 resize=True,new_shape=self.transformer.embeddings.position_embeddings.shape,\
-                height=self.img_size[0]//self.config.patches['size'][0],\
-                width=self.img_size[1]//self.config.patches['size'][1]))
+                height=self.img_size[0]//self.config.stride['size'][1],\
+                width=self.img_size[1]//self.config.stride['size'][2]))
             '''
             posemb_new = self.transformer.embeddings.position_embeddings
             if posemb.size() == posemb_new.size():

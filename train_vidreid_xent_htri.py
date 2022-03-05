@@ -168,20 +168,20 @@ parser.add_argument('--save-dir', type=str, default='log')
 line = "-d mars \
         -a vmgn \
         --seq-len 8 \
-        --train-batch 48 \
-        --test-batch 48 \
+        --train-batch 46 \
+        --test-batch 46 \
         --num-instances 4 \
         --train-sample restricted \
         --train-sampler RandomIdentitySamplerV1 \
         --test-sample evenly \
         --optim adamw \
-        --weight-decay 0.03\
+        --weight-decay 0.05\
         --soft-margin \
-        --lr 4e-4 \
+        --lr 2.5e-4 \
         --max-epoch 200 \
         --stepsize 50 100 150 \
         --flip-aug \
-        --gpu-devices 1,2,3 \
+        --gpu-devices 0,1,2,3 \
         --eval-step 5 \
         --print-last \
         --dist-metric cosine \
@@ -194,7 +194,8 @@ line = "-d mars \
         --consistent-loss \
         --workers 12 \
         --height 256 \
-        --width 128"
+        --width 128 \
+        --rand-crop"
         # --resume /home/mygit/AGRL.pytorch/log/video/vivit/checkpoint_ep140.pth.tar"
 
 '''
