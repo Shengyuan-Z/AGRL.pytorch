@@ -4,7 +4,8 @@ from __future__ import division
 
 class AverageMeter(object):
     """Computes and stores the average and current value.
-       
+       val is current value
+       avg is accomulated value (total sum/ total num)
        Code imported from https://github.com/pytorch/examples/blob/master/imagenet/main.py#L247-L262
     """
     def __init__(self):
