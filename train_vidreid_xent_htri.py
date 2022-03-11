@@ -29,7 +29,7 @@ from torchreid.samplers import *
 from torchreid.optimizers import init_optim
 
 # vivit
-from models.vivit import VisionTransformer, CONFIGS
+from models.vivit2 import VisionTransformer, CONFIGS
 
 parser = argparse.ArgumentParser(description='Train video model with cross entropy loss')
 # ViT Backbone
@@ -177,15 +177,15 @@ line = "-d mars \
         --optim adamw \
         --weight-decay 0.03\
         --soft-margin \
-        --lr 4e-4 \
+        --lr 2e-4 \
         --max-epoch 200 \
         --stepsize 50 100 150 \
         --flip-aug \
         --gpu-devices 1,2,3 \
-        --eval-step 5 \
+        --eval-step 1 \
         --print-last \
         --dist-metric cosine \
-        --save-dir log/video/vivit \
+        --save-dir log/video/vivit2 \
         --use-pose \
         --num-split 4 \
         --pyramid-part \
@@ -193,8 +193,8 @@ line = "-d mars \
         --learn-graph \
         --consistent-loss \
         --workers 12 \
-        --height 256 \
-        --width 128"
+        --height 224 \
+        --width 224"
         # --resume /home/mygit/AGRL.pytorch/log/video/vivit/checkpoint_ep140.pth.tar"
 
 '''
