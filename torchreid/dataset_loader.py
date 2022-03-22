@@ -131,9 +131,13 @@ class VideoDataset(Dataset):
 
             indices = frame_indices[begin_index:end_index]
 
+            ''' 012345 -> 01234501
             for index in indices:
                 if len(indices) >= self.seq_len: break
                 np.append(indices, index)
+            '''
+            while(len(indices) < self.seq_len):
+                np.append(indices, indices[-1])
         elif self.sample == 'dense':
             """
             Sample all frames in a video into a list of clips, each clip contains seq_len frames, 

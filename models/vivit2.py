@@ -112,7 +112,7 @@ class Attention(nn.Module):
 
         self.out = Linear(config.hidden_size, config.hidden_size)
         self.attn_dropout = Dropout(config.transformer["attention_dropout_rate"])
-        self.proj_dropout = Dropout(config.transformer["attention_dropout_rate"])
+        self.proj_dropout = Dropout(config.transformer["dropout_rate"])
 
         self.softmax = Softmax(dim=-1)
 
@@ -214,6 +214,9 @@ class Embeddings(nn.Module):
             x = torch.cat((cls_tokens, x), dim=1)
             embeddings = x + self.position_embeddings
         elif self.method == 'temporal': # TODO: shape
+            x = self.patch_embeddings(x)
+            x = x.flatten(2)
+            # x = x.transpose(-1, -2)
             x = torch.cat((cls_tokens, x), dim=1)
             embeddings = x + self.position_embeddings
 
@@ -280,12 +283,13 @@ class Block(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, config, vis=False):
+    def __init__(self, config, vis=False, method='spatial'):
         super(Encoder, self).__init__()
         self.vis = vis
         self.layer = nn.ModuleList()
         self.encoder_norm = LayerNorm(config.hidden_size, eps=1e-6)
-        for _ in range(config.transformer["num_layers"]):
+        num_layers = config.transformer["num_layers"] if method=='spatial' else config.transformer["tmp_num_layers"]
+        for _ in range(num_layers):
             layer = Block(config, vis)
             self.layer.append(copy.deepcopy(layer))
 
@@ -314,7 +318,7 @@ class Temporal_Transformer(nn.Module):
     def __init__(self, config, img_size, seq_len, vis=False):
         super(Temporal_Transformer, self).__init__()
         self.embeddings = Embeddings(config, img_size=img_size,seq_len=seq_len,method='temporal')
-        self.encoder = Encoder(config, vis)
+        self.encoder = Encoder(config, vis, method='temporal')
 
     def forward(self, x):
         x = self.embeddings(x)

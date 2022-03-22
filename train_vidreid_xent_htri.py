@@ -60,9 +60,9 @@ parser.add_argument('--test-batch', default=5, type=int,
                     help="test batch size (number of tracklets)")
 parser.add_argument('--num-instances', type=int, default=4,
                     help="number of instances per identity")
-parser.add_argument('--train-sample', default='restricted', choices=['evenly', 'random', 'consecutive', 'restricted'],
+parser.add_argument('--train-sample', default='restricted', choices=['evenly', 'random', 'consecutive', 'restricted'], 
                     help="sampling strategy in training stage.")
-parser.add_argument('--test-sample', default='dense', choices=['evenly', 'all', 'dense', 'skipdense'],
+parser.add_argument('--test-sample', default='dense', choices=['evenly', 'all', 'dense', 'skipdense','consecutive'],
                     help="sampling strategy in testing stage. ")
 parser.add_argument('--train-sampler', default='RandomIdentitySampler',
                     help='sampler used in training.')
@@ -147,7 +147,7 @@ parser.add_argument('--evaluate', action='store_true',
 parser.add_argument('--eval-step', type=int, default=-1,
                     help="run evaluation for every N epochs (set to -1 to test after training)")
 parser.add_argument('--start-eval', type=int, default=0,
-                    help="start to evaluate after specific epoch")
+                    help="start to evaluate after specific epoch") #!
 # Devices
 parser.add_argument('--use-cpu', action='store_true',
                     help="use cpu")
@@ -175,27 +175,27 @@ line = "-d mars \
         --train-sampler RandomIdentitySamplerV1 \
         --test-sample evenly \
         --optim adamw \
-        --weight-decay 0.03\
         --soft-margin \
-        --lr 2e-4 \
+        --lr 2e-5 \
         --max-epoch 200 \
         --stepsize 50 100 150 \
         --flip-aug \
-        --gpu-devices 1,2,3 \
-        --eval-step 1 \
+        --gpu-devices 0,1,2,3 \
+        --eval-step 5 \
         --print-last \
         --dist-metric cosine \
-        --save-dir log/video/vivit2 \
+        --save-dir log/video/vivit2_dropout \
         --use-pose \
         --num-split 4 \
         --pyramid-part \
         --num-gb 2 \
         --learn-graph \
         --consistent-loss \
-        --workers 12 \
+        --workers 8 \
         --height 224 \
-        --width 224"
-        # --resume /home/mygit/AGRL.pytorch/log/video/vivit/checkpoint_ep140.pth.tar"
+        --width 224\
+        --start-eval 50 \
+        --resume /home/AGRL.pytorch/log/video/vivit2_dropout_adamw_lr2e-05/checkpoint_ep95.pth.tar"
 
 '''
         --num-split 4 \
@@ -227,7 +227,7 @@ def main():
         use_gpu = False
 
     ## mod
-    args.save_dir = f"{args.save_dir}_{args.optim}_lr{args.lr}_decay{args.weight_decay}"
+    args.save_dir = f"{args.save_dir}_{args.optim}_lr{args.lr}"
 
     if not args.evaluate:
         sys.stdout = Logger(osp.join(args.save_dir, 'log_train{}.txt'.format(time.strftime('-%Y-%m-%d-%H-%M-%S'))))
